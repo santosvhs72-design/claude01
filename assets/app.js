@@ -196,12 +196,14 @@ function renderTask(t) {
         <div class="task-row">
             <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
             <span class="check" title="Concluir">${t.done == 1 ? '✓' : ''}</span>
-            <span class="title" title="Clica para editar">${escapeHtml(t.title)}</span>
-            <div class="task-meta">
-                ${dt ? `<span class="due ${ri ? ri.cls : ''}">${escapeHtml(dueLabel(t.due_date, t.due_time))}</span>` : ''}
-                ${ri ? `<span class="remain ${ri.cls}">${escapeHtml(ri.label)}</span>` : ''}
-                ${recurrenceBadge(t.recurrence) ? `<span class="recur" title="Tarefa recorrente">🔁 ${escapeHtml(recurrenceBadge(t.recurrence))}</span>` : ''}
-                ${t.category_name ? `<span class="badge" style="background:${escapeHtml(t.category_color)}">${escapeHtml(t.category_name)}</span>` : ''}
+            <div class="task-main">
+                <span class="title" title="Clica para editar">${escapeHtml(t.title)}</span>
+                <div class="task-meta">
+                    ${dt ? `<span class="due ${ri ? ri.cls : ''}">${escapeHtml(dueLabel(t.due_date, t.due_time))}</span>` : ''}
+                    ${ri ? `<span class="remain ${ri.cls}">${escapeHtml(ri.label)}</span>` : ''}
+                    ${recurrenceBadge(t.recurrence) ? `<span class="recur" title="Tarefa recorrente">🔁 ${escapeHtml(recurrenceBadge(t.recurrence))}</span>` : ''}
+                    ${t.category_name ? `<span class="badge" style="background:${escapeHtml(t.category_color)}">${escapeHtml(t.category_name)}</span>` : ''}
+                </div>
             </div>
             <div class="actions">
                 <button class="sub-toggle" title="Subtarefas">🗒${subs.length ? ` ${subDone}/${subs.length}` : ''}</button>

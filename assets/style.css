@@ -194,7 +194,7 @@ button:hover { background: var(--primary-hover); }
 .task-item.dragging { opacity: .5; }
 .task-item.drag-over { border-top: 2px dashed var(--primary); }
 
-.task-row { display: flex; align-items: center; gap: 12px; }
+.task-row { display: flex; align-items: flex-start; gap: 12px; }
 
 .drag-handle { cursor: grab; color: var(--muted); font-size: 1.1rem; user-select: none; touch-action: none; }
 .drag-handle:active { cursor: grabbing; }
@@ -208,8 +208,11 @@ button:hover { background: var(--primary-hover); }
 .task-item.done .check { background: #22c55e; border-color: #22c55e; }
 .task-item.done .title { text-decoration: line-through; color: var(--muted); }
 
-.title { flex: 1; word-break: break-word; cursor: pointer; }
+/* Coluna principal: título por cima, badges por baixo (nunca competem por espaço) */
+.task-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.title { overflow-wrap: anywhere; cursor: pointer; }
 .task-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.task-meta:empty { display: none; }
 
 .badge {
     font-size: .72rem; font-weight: 600;
@@ -306,5 +309,4 @@ input[type="color"] {
     body { padding: 16px 10px; }
     .task-form-main { flex-wrap: wrap; }
     .task-form-main button { flex: 1; }
-    .task-meta { width: 100%; margin-top: 6px; padding-left: 34px; }
 }
