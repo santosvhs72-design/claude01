@@ -448,6 +448,13 @@ function refreshCountdowns() {
 }
 setInterval(refreshCountdowns, 60000);
 
+// ---------- PWA: regista o service worker ----------
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => { /* offline/sem HTTPS: ignora */ });
+    });
+}
+
 // ---------- Arranque ----------
 (async function init() {
     applyTheme(localStorage.getItem('theme') || 'light');

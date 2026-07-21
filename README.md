@@ -12,6 +12,7 @@ basta enviar os ficheiros por **FTP**.
 - ⏰ **Prazos** com data e **hora de término opcional**
 - ⏳ **Tempo em falta** por tarefa (ex.: "Faltam 2d 3h" / "Atrasada há 5h"), atualizado automaticamente
 - 🔁 **Tarefas recorrentes** (diária/semanal/mensal/anual): ao concluir, a próxima ocorrência é criada automaticamente
+- 📲 **PWA**: instalável no telemóvel/desktop e com o interface a funcionar offline
 - 🔴🟡🟢 **Prioridades** (alta/média/baixa) com marca de cor na tarefa
 - 🗒 **Subtarefas** (checklist) com barra de progresso
 - ↕️ **Arrastar para reordenar** (drag & drop)
@@ -39,10 +40,16 @@ Não é preciso MySQL, nem instalar dependências, nem `composer`.
    É aqui que o ficheiro `todo.sqlite` é criado na primeira utilização.
 3. Abre o site no navegador. Pronto! 🎉
 
+> **PWA / instalação:** para poderes instalar a app no telemóvel/desktop e usar offline,
+> o site tem de ser servido por **HTTPS** (requisito dos service workers). Quase todos os
+> alojamentos partilhados oferecem HTTPS gratuito. Em `http://localhost` também funciona.
+
 ## Estrutura dos ficheiros
 
 ```
 index.php          → Página principal (interface)
+manifest.json      → Manifesto da PWA (nome, ícones, cores)
+sw.js              → Service worker (cache offline do shell)
 api.php            → API JSON (adicionar/listar/eliminar tarefas e categorias)
 db.php             → Ligação SQLite + criação automática das tabelas
 assets/style.css   → Estilos
