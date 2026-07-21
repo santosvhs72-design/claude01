@@ -71,6 +71,12 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
                 <button class="status-btn" data-status="active">Ativas</button>
                 <button class="status-btn" data-status="done">Concluídas</button>
             </div>
+            <select id="sort" title="Ordenar">
+                <option value="manual">↕️ Ordem manual</option>
+                <option value="created">🗓 Data de criação</option>
+                <option value="due">⏰ Prazo</option>
+                <option value="name">🔤 Nome (A–Z)</option>
+            </select>
         </div>
         <div class="filters" id="filters"></div>
 

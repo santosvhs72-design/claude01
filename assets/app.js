@@ -6,6 +6,7 @@ const API = 'api.php';
 let categories = [];
 let currentFilter = localStorage.getItem('filter') || 'all';
 let currentStatus = localStorage.getItem('status') || 'all';
+let currentSort = localStorage.getItem('sort') || 'manual';
 let searchQuery = '';
 const expanded = new Set(); // ids de tarefas com subtarefas visíveis
 
@@ -72,6 +73,15 @@ function humanDuration(ms) {
 function dueLabel(due, time) {
     const [y, m, d] = due.split('-');
     return `📅 ${d}/${m}` + (/^\d{2}:\d{2}$/.test(time || '') ? ` ${time}` : '');
+}
+
+// Etiqueta da data de criação (ex.: "Criada 21/07/2026")
+function createdLabel(createdAt) {
+    if (!createdAt) return '';
+    const datePart = String(createdAt).split(' ')[0]; // "YYYY-MM-DD"
+    const [y, m, d] = datePart.split('-');
+    if (!y || !m || !d) return '';
+    return `Criada ${d}/${m}/${y}`;
 }
 
 // Etiqueta do tempo em falta, relativa ao momento atual
@@ -160,7 +170,7 @@ function renderCategoryList() {
 
 // ---------- Tarefas ----------
 async function loadTasks() {
-    const tasks = await apiGet('tasks', { category: currentFilter, status: currentStatus, q: searchQuery });
+    const tasks = await apiGet('tasks', { category: currentFilter, status: currentStatus, q: searchQuery, sort: currentSort });
     const ul = document.getElementById('task-list');
     const empty = document.getElementById('empty-msg');
 
@@ -178,7 +188,8 @@ function renderTask(t) {
     const li = document.createElement('li');
     li.className = `task-item prio-${t.priority || 'media'} ${t.done == 1 ? 'done' : ''}`;
     li.dataset.id = t.id;
-    li.draggable = true;
+    const canDrag = currentSort === 'manual';
+    li.draggable = canDrag;
 
     const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
     const subDone = subs.filter(s => s.done == 1).length;
@@ -194,7 +205,7 @@ function renderTask(t) {
 
     li.innerHTML = `
         <div class="task-row">
-            <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
+            <span class="drag-handle ${canDrag ? '' : 'disabled'}" title="${canDrag ? 'Arrastar para reordenar' : 'Reordenar só na ordem manual'}">⠿</span>
             <span class="check" title="Concluir">${t.done == 1 ? '✓' : ''}</span>
             <div class="task-main">
                 <span class="title" title="Clica para editar">${escapeHtml(t.title)}</span>
@@ -203,6 +214,7 @@ function renderTask(t) {
                     ${ri ? `<span class="remain ${ri.cls}">${escapeHtml(ri.label)}</span>` : ''}
                     ${recurrenceBadge(t.recurrence) ? `<span class="recur" title="Tarefa recorrente">🔁 ${escapeHtml(recurrenceBadge(t.recurrence))}</span>` : ''}
                     ${t.category_name ? `<span class="badge" style="background:${escapeHtml(t.category_color)}">${escapeHtml(t.category_name)}</span>` : ''}
+                    ${t.created_at ? `<span class="created" title="Data de criação">${escapeHtml(createdLabel(t.created_at))}</span>` : ''}
                 </div>
             </div>
             <div class="actions">
@@ -237,7 +249,7 @@ function renderTask(t) {
     });
     if (isOpen) renderSubtasks(subBox, t.id, subs);
 
-    attachDrag(li);
+    if (canDrag) attachDrag(li);
     return li;
 }
 
@@ -416,6 +428,13 @@ document.getElementById('status-filter').addEventListener('click', (e) => {
     loadTasks();
 });
 
+// Ordenação
+document.getElementById('sort').addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    localStorage.setItem('sort', currentSort);
+    loadTasks();
+});
+
 // Tema
 document.getElementById('theme-toggle').addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -544,6 +563,7 @@ if ('serviceWorker' in navigator) {
     // Restaura o estado ativo dos filtros
     document.querySelectorAll('.status-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.status === currentStatus));
+    document.getElementById('sort').value = currentSort;
     updateRemindersBtn();
     await loadCategories();
     await loadTasks();

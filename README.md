@@ -18,6 +18,8 @@ basta enviar os ficheiros por **FTP**.
 - 🗒 **Subtarefas** (checklist) com barra de progresso
 - ↕️ **Arrastar para reordenar** (drag & drop)
 - 🔍 **Pesquisa** por texto + **filtros combinados** (categoria + estado: todas/ativas/concluídas)
+- 🗓 **Data de criação** visível em cada tarefa
+- ↕️ **Ordenação** por ordem manual, data de criação, prazo ou nome (A–Z)
 - 🌙 **Modo escuro** com preferência guardada
 - 📱 Design **responsivo** (funciona bem no telemóvel)
 - 💾 Dados guardados em **SQLite** (ficheiro único, criado e migrado automaticamente)

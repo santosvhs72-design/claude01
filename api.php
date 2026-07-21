@@ -100,6 +100,7 @@ try {
             $cat    = $_GET['category'] ?? 'all';
             $status = $_GET['status'] ?? 'all';   // all | active | done
             $q      = trim($_GET['q'] ?? '');
+            $sort   = $_GET['sort'] ?? 'manual';   // manual | created | due | name
 
             $where  = [];
             $params = [];
@@ -125,7 +126,20 @@ try {
             if ($where) {
                 $sql .= ' WHERE ' . implode(' AND ', $where);
             }
-            $sql .= ' ORDER BY t.done ASC, t.position ASC, t.created_at DESC';
+            switch ($sort) {
+                case 'created': // mais recentes primeiro
+                    $order = 't.done ASC, t.created_at DESC, t.id DESC';
+                    break;
+                case 'due':      // por prazo, sem data no fim
+                    $order = 't.done ASC, (t.due_date IS NULL) ASC, t.due_date ASC, t.due_time ASC, t.id DESC';
+                    break;
+                case 'name':     // alfabética
+                    $order = 't.done ASC, t.title COLLATE NOCASE ASC, t.id ASC';
+                    break;
+                default:         // manual (drag & drop)
+                    $order = 't.done ASC, t.position ASC, t.created_at DESC';
+            }
+            $sql .= ' ORDER BY ' . $order;
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
