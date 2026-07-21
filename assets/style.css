@@ -69,6 +69,15 @@ header h1 { font-size: 1.9rem; }
     margin-bottom: 20px;
 }
 
+/* Título de cada secção, com divisória */
+.section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
 /* Formulário de tarefa */
 .task-form-main { display: flex; gap: 8px; margin-bottom: 10px; }
 .task-form-main input[type="text"] { flex: 1; }
@@ -191,8 +200,8 @@ button:hover { background: var(--primary-hover); }
     border-radius: var(--radius);
     padding: 12px 14px;
     margin-bottom: 8px;
-    box-shadow: var(--shadow);
 }
+.task-item:last-child { margin-bottom: 0; }
 .task-item.prio-alta  { border-left-color: #ef4444; }
 .task-item.prio-media { border-left-color: #f59e0b; }
 .task-item.prio-baixa { border-left-color: #22c55e; }
@@ -293,7 +302,6 @@ button:hover { background: var(--primary-hover); }
 .empty { text-align: center; color: var(--muted); padding: 24px; }
 
 /* Categorias */
-.categories-manager h2 { font-size: 1.15rem; margin-bottom: 12px; }
 #category-form { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 #category-form input[type="text"] { flex: 1 1 160px; }
 input[type="color"] {

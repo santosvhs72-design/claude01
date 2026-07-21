@@ -38,55 +38,59 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
             <p class="subtitle">Organiza as tuas tarefas por categoria, prazo e prioridade</p>
         </header>
 
-        <!-- Adicionar nova tarefa -->
-        <form id="task-form" class="card">
-            <div class="task-form-main">
-                <input type="text" id="task-title" placeholder="Nova tarefa..." maxlength="200" required>
-                <button type="submit">Adicionar</button>
-            </div>
-            <div class="task-form-opts">
-                <select id="task-category" title="Categoria"></select>
-                <select id="task-priority" title="Prioridade">
-                    <option value="alta">🔴 Alta</option>
-                    <option value="media" selected>🟡 Média</option>
-                    <option value="baixa">🟢 Baixa</option>
+        <!-- Secção: criar tarefa -->
+        <section class="card section">
+            <h2 class="section-title">➕ Nova tarefa</h2>
+            <form id="task-form">
+                <div class="task-form-main">
+                    <input type="text" id="task-title" placeholder="O que precisas de fazer?" maxlength="200" required>
+                    <button type="submit">Adicionar</button>
+                </div>
+                <div class="task-form-opts">
+                    <select id="task-category" title="Categoria"></select>
+                    <select id="task-priority" title="Prioridade">
+                        <option value="alta">🔴 Alta</option>
+                        <option value="media" selected>🟡 Média</option>
+                        <option value="baixa">🟢 Baixa</option>
+                    </select>
+                    <input type="date" id="task-due" title="Data limite">
+                    <input type="time" id="task-due-time" title="Hora de término (opcional)">
+                    <select id="task-recurrence" title="Repetição">
+                        <option value="none" selected>🔁 Não repete</option>
+                        <option value="daily">Diariamente</option>
+                        <option value="weekly">Semanalmente</option>
+                        <option value="monthly">Mensalmente</option>
+                        <option value="yearly">Anualmente</option>
+                    </select>
+                </div>
+            </form>
+        </section>
+
+        <!-- Secção: lista de tarefas -->
+        <section class="card section">
+            <h2 class="section-title">📋 As minhas tarefas</h2>
+            <div class="toolbar">
+                <input type="search" id="search" placeholder="🔍 Pesquisar tarefas...">
+                <div class="status-filter" id="status-filter">
+                    <button class="status-btn active" data-status="all">Todas</button>
+                    <button class="status-btn" data-status="active">Ativas</button>
+                    <button class="status-btn" data-status="done">Concluídas</button>
+                </div>
+                <select id="sort" title="Ordenar">
+                    <option value="manual">↕️ Ordem manual</option>
+                    <option value="created">🗓 Data de criação</option>
+                    <option value="due">⏰ Prazo</option>
+                    <option value="name">🔤 Nome (A–Z)</option>
                 </select>
-                <input type="date" id="task-due" title="Data limite">
-                <input type="time" id="task-due-time" title="Hora de término (opcional)">
-                <select id="task-recurrence" title="Repetição">
-                    <option value="none" selected>🔁 Não repete</option>
-                    <option value="daily">Diariamente</option>
-                    <option value="weekly">Semanalmente</option>
-                    <option value="monthly">Mensalmente</option>
-                    <option value="yearly">Anualmente</option>
-                </select>
             </div>
-        </form>
+            <div class="filters" id="filters"></div>
+            <ul class="task-list" id="task-list"></ul>
+            <p class="empty" id="empty-msg" hidden>Sem tarefas por aqui. 🎉</p>
+        </section>
 
-        <!-- Pesquisa e filtros -->
-        <div class="toolbar">
-            <input type="search" id="search" placeholder="🔍 Pesquisar tarefas...">
-            <div class="status-filter" id="status-filter">
-                <button class="status-btn active" data-status="all">Todas</button>
-                <button class="status-btn" data-status="active">Ativas</button>
-                <button class="status-btn" data-status="done">Concluídas</button>
-            </div>
-            <select id="sort" title="Ordenar">
-                <option value="manual">↕️ Ordem manual</option>
-                <option value="created">🗓 Data de criação</option>
-                <option value="due">⏰ Prazo</option>
-                <option value="name">🔤 Nome (A–Z)</option>
-            </select>
-        </div>
-        <div class="filters" id="filters"></div>
-
-        <!-- Lista de tarefas -->
-        <ul class="task-list" id="task-list"></ul>
-        <p class="empty" id="empty-msg" hidden>Sem tarefas por aqui. 🎉</p>
-
-        <!-- Gestão de categorias -->
-        <section class="card categories-manager">
-            <h2>Categorias</h2>
+        <!-- Secção: categorias -->
+        <section class="card section categories-manager">
+            <h2 class="section-title">🏷 Categorias</h2>
             <form id="category-form">
                 <input type="text" id="category-name" placeholder="Nova categoria..." maxlength="50" required>
                 <input type="color" id="category-color" value="#8b5cf6" title="Escolher cor">
