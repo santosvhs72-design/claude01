@@ -398,6 +398,16 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
     applyTheme(cur);
 });
 
+// Abrir o seletor de data/hora ao clicar em qualquer parte do campo.
+// (Como o ícone nativo está escondido, garantimos que o clique abre o picker.)
+document.addEventListener('click', (e) => {
+    const el = e.target;
+    if (el && el.matches && el.matches('input[type="date"], input[type="time"]')
+        && typeof el.showPicker === 'function') {
+        try { el.showPicker(); } catch (_) { /* ignora se já estiver a abrir */ }
+    }
+});
+
 // ---------- Atualização automática do "tempo em falta" ----------
 function refreshCountdowns() {
     document.querySelectorAll('.task-item').forEach(li => {
