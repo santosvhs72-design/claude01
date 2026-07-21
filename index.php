@@ -1,11 +1,18 @@
-<?php require __DIR__ . '/db.php'; get_db(); // garante a criação/migração da BD ?>
+<?php
+require __DIR__ . '/db.php';
+get_db(); // garante a criação/migração da BD
+// Cache-busting: a versão muda sempre que o ficheiro é alterado,
+// forçando o browser a descarregar o CSS/JS novo (útil em deploys por FTP).
+$cssV = @filemtime(__DIR__ . '/assets/style.css') ?: time();
+$jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
+?>
 <!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Minhas Tarefas</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/style.css?v=<?= $cssV ?>">
 </head>
 <body>
     <div class="app">
@@ -62,6 +69,6 @@
         </section>
     </div>
 
-    <script src="assets/app.js"></script>
+    <script src="assets/app.js?v=<?= $jsV ?>"></script>
 </body>
 </html>
