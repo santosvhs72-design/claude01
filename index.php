@@ -1,4 +1,4 @@
-<?php require __DIR__ . '/db.php'; get_db(); // garante a criação da BD ?>
+<?php require __DIR__ . '/db.php'; get_db(); // garante a criação/migração da BD ?>
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -10,18 +10,39 @@
 <body>
     <div class="app">
         <header>
-            <h1>✓ Minhas Tarefas</h1>
-            <p class="subtitle">Organiza as tuas tarefas por categoria</p>
+            <div class="header-top">
+                <h1>✓ Minhas Tarefas</h1>
+                <button id="theme-toggle" class="icon-btn" title="Alternar tema">🌙</button>
+            </div>
+            <p class="subtitle">Organiza as tuas tarefas por categoria, prazo e prioridade</p>
         </header>
 
         <!-- Adicionar nova tarefa -->
         <form id="task-form" class="card">
-            <input type="text" id="task-title" placeholder="Nova tarefa..." maxlength="200" required>
-            <select id="task-category"></select>
-            <button type="submit">Adicionar</button>
+            <div class="task-form-main">
+                <input type="text" id="task-title" placeholder="Nova tarefa..." maxlength="200" required>
+                <button type="submit">Adicionar</button>
+            </div>
+            <div class="task-form-opts">
+                <select id="task-category" title="Categoria"></select>
+                <select id="task-priority" title="Prioridade">
+                    <option value="alta">🔴 Alta</option>
+                    <option value="media" selected>🟡 Média</option>
+                    <option value="baixa">🟢 Baixa</option>
+                </select>
+                <input type="date" id="task-due" title="Prazo">
+            </div>
         </form>
 
-        <!-- Filtro por categoria -->
+        <!-- Pesquisa e filtros -->
+        <div class="toolbar">
+            <input type="search" id="search" placeholder="🔍 Pesquisar tarefas...">
+            <div class="status-filter" id="status-filter">
+                <button class="status-btn active" data-status="all">Todas</button>
+                <button class="status-btn" data-status="active">Ativas</button>
+                <button class="status-btn" data-status="done">Concluídas</button>
+            </div>
+        </div>
         <div class="filters" id="filters"></div>
 
         <!-- Lista de tarefas -->

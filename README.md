@@ -6,11 +6,20 @@ basta enviar os ficheiros por **FTP**.
 
 ## Funcionalidades
 
-- ➕ Adicionar e ✅ concluir tarefas
+- ➕ Adicionar, ✏️ editar (inline) e ✅ concluir tarefas
 - 🗑 Eliminar tarefas
 - 🏷 Organizar tarefas por **categoria** (com cor personalizada)
-- 🔍 Filtrar tarefas por categoria
-- 💾 Dados guardados em **SQLite** (ficheiro único, criado automaticamente)
+- ⏰ **Prazos** com destaque para tarefas de hoje e atrasadas
+- 🔴🟡🟢 **Prioridades** (alta/média/baixa) com marca de cor na tarefa
+- 🗒 **Subtarefas** (checklist) com barra de progresso
+- ↕️ **Arrastar para reordenar** (drag & drop)
+- 🔍 **Pesquisa** por texto + **filtros combinados** (categoria + estado: todas/ativas/concluídas)
+- 🌙 **Modo escuro** com preferência guardada
+- 📱 Design **responsivo** (funciona bem no telemóvel)
+- 💾 Dados guardados em **SQLite** (ficheiro único, criado e migrado automaticamente)
+
+> A base de dados é **migrada automaticamente**: se já tinhas uma versão anterior
+> instalada, as novas colunas são adicionadas sem perder os teus dados.
 
 ## Requisitos do servidor
 
