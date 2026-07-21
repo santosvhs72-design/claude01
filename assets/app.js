@@ -448,6 +448,89 @@ function refreshCountdowns() {
 }
 setInterval(refreshCountdowns, 60000);
 
+// ---------- Lembretes (notificações) ----------
+const REMIND_WINDOW_MS = 30 * 60 * 1000; // avisa numa janela de ±30 min do prazo
+const remindersBtn = document.getElementById('reminders-toggle');
+
+function remindersOn() {
+    return localStorage.getItem('reminders') === 'on'
+        && 'Notification' in window && Notification.permission === 'granted';
+}
+
+function updateRemindersBtn() {
+    if (!remindersBtn) return;
+    const on = remindersOn();
+    remindersBtn.textContent = on ? '🔔' : '🔕';
+    remindersBtn.classList.toggle('active', on);
+    remindersBtn.title = on ? 'Lembretes ativos (clica para desativar)' : 'Ativar lembretes de tarefas';
+}
+
+function reminderKey(t) {
+    return `notified:${t.id}:${t.due_date || ''}:${t.due_time || ''}`;
+}
+
+function showReminder(t, diff) {
+    const when = diff >= 0 ? `Faltam ${humanDuration(diff)}` : `Atrasada há ${humanDuration(diff)}`;
+    const opts = {
+        body: `${t.title} — ${when}`,
+        icon: 'assets/icon-192.png',
+        badge: 'assets/icon-192.png',
+        tag: 'task-' + t.id,
+        renotify: true,
+    };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready
+            .then((reg) => reg.showNotification('⏰ Lembrete de tarefa', opts))
+            .catch(() => { try { new Notification('⏰ Lembrete de tarefa', opts); } catch (_) {} });
+    } else {
+        try { new Notification('⏰ Lembrete de tarefa', opts); } catch (_) {}
+    }
+}
+
+async function checkReminders() {
+    if (!remindersOn()) return;
+    let tasks;
+    try { tasks = await apiGet('tasks', { status: 'active' }); } catch (_) { return; }
+    if (!Array.isArray(tasks)) return;
+    const now = Date.now();
+    for (const t of tasks) {
+        const dt = parseDue(t.due_date, t.due_time);
+        if (!dt) continue;
+        const diff = dt.getTime() - now;
+        // dentro da janela (perto de vencer ou acabou de vencer) e ainda não avisado
+        if (diff <= REMIND_WINDOW_MS && diff >= -REMIND_WINDOW_MS) {
+            const key = reminderKey(t);
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, '1');
+            showReminder(t, diff);
+        }
+    }
+}
+
+if (remindersBtn) {
+    remindersBtn.addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+            alert('Este navegador não suporta notificações.');
+            return;
+        }
+        if (localStorage.getItem('reminders') === 'on') {
+            localStorage.setItem('reminders', 'off');
+        } else {
+            let perm = Notification.permission;
+            if (perm !== 'granted') perm = await Notification.requestPermission();
+            if (perm !== 'granted') {
+                alert('Permissão de notificações negada. Podes reativá-la nas definições do navegador.');
+                updateRemindersBtn();
+                return;
+            }
+            localStorage.setItem('reminders', 'on');
+            checkReminders();
+        }
+        updateRemindersBtn();
+    });
+}
+setInterval(checkReminders, 60000);
+
 // ---------- PWA: regista o service worker ----------
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -461,6 +544,8 @@ if ('serviceWorker' in navigator) {
     // Restaura o estado ativo dos filtros
     document.querySelectorAll('.status-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.status === currentStatus));
+    updateRemindersBtn();
     await loadCategories();
     await loadTasks();
+    checkReminders();
 })();

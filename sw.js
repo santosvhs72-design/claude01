@@ -1,5 +1,5 @@
 /* Service worker da PWA "Minhas Tarefas" */
-const CACHE = 'tarefas-v1';
+const CACHE = 'tarefas-v2';
 
 // Shell da aplicação (ficheiros estáticos essenciais)
 const SHELL = [
@@ -26,6 +26,19 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
             .then(() => self.clients.claim())
+    );
+});
+
+// Clicar na notificação foca (ou abre) a aplicação
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+            for (const c of list) {
+                if ('focus' in c) return c.focus();
+            }
+            if (self.clients.openWindow) return self.clients.openWindow('./index.php');
+        })
     );
 });
 

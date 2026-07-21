@@ -30,7 +30,10 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
         <header>
             <div class="header-top">
                 <h1>✓ Minhas Tarefas</h1>
-                <button id="theme-toggle" class="icon-btn" title="Alternar tema">🌙</button>
+                <div class="header-actions">
+                    <button id="reminders-toggle" class="icon-btn" title="Lembretes de tarefas">🔕</button>
+                    <button id="theme-toggle" class="icon-btn" title="Alternar tema">🌙</button>
+                </div>
             </div>
             <p class="subtitle">Organiza as tuas tarefas por categoria, prazo e prioridade</p>
         </header>
