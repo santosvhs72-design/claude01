@@ -15,7 +15,7 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#f1f5f9">
     <link rel="icon" type="image/png" href="assets/icon-192.png">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     <meta name="mobile-web-app-capable" content="yes">

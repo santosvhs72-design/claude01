@@ -1,5 +1,5 @@
 /* Service worker da PWA "Minhas Tarefas" */
-const CACHE = 'tarefas-v2';
+const CACHE = 'tarefas-v3';
 
 // Shell da aplicação (ficheiros estáticos essenciais)
 const SHELL = [

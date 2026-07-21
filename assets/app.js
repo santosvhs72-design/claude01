@@ -96,6 +96,9 @@ function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
     localStorage.setItem('theme', theme);
+    // Sincroniza a cor da barra de topo (PWA/mobile) com o tema da app
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#f1f5f9');
 }
 
 // ---------- Categorias ----------
