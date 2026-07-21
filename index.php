@@ -39,6 +39,13 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
                 </select>
                 <input type="date" id="task-due" title="Data limite">
                 <input type="time" id="task-due-time" title="Hora de término (opcional)">
+                <select id="task-recurrence" title="Repetição">
+                    <option value="none" selected>🔁 Não repete</option>
+                    <option value="daily">Diariamente</option>
+                    <option value="weekly">Semanalmente</option>
+                    <option value="monthly">Mensalmente</option>
+                    <option value="yearly">Anualmente</option>
+                </select>
             </div>
         </form>
 

@@ -46,6 +46,27 @@ function valid_time(?string $t): ?string
     return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t) ? $t : null;
 }
 
+function valid_recurrence(string $r): string
+{
+    return in_array($r, ['none', 'daily', 'weekly', 'monthly', 'yearly'], true) ? $r : 'none';
+}
+
+// Calcula a data da próxima ocorrência a partir de uma data base (ou de hoje)
+function next_due(?string $due, string $rec): ?string
+{
+    $base = $due ?: date('Y-m-d');
+    $dt = DateTime::createFromFormat('Y-m-d', $base);
+    if (!$dt) return $due;
+    switch ($rec) {
+        case 'daily':   $dt->modify('+1 day');   break;
+        case 'weekly':  $dt->modify('+1 week');  break;
+        case 'monthly': $dt->modify('+1 month'); break;
+        case 'yearly':  $dt->modify('+1 year');  break;
+        default:        return $due;
+    }
+    return $dt->format('Y-m-d');
+}
+
 try {
     switch ($action) {
 
@@ -134,14 +155,15 @@ try {
             $priority = valid_priority($d['priority'] ?? 'media');
             $due      = valid_date($d['due_date'] ?? null);
             $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null; // hora só faz sentido com data
+            $rec      = valid_recurrence($d['recurrence'] ?? 'none');
             if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
 
             // Novas tarefas aparecem no topo (posição = menor - 1)
             $minPos = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
             $pos    = ($minPos === null) ? 0 : ((int) $minPos - 1);
 
-            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, position) VALUES (?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $pos]);
+            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, recurrence, position) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $rec, $pos]);
             out(['id' => (int) $pdo->lastInsertId()], 201);
 
         case 'update_task':
@@ -153,17 +175,37 @@ try {
             $priority = valid_priority($d['priority'] ?? 'media');
             $due      = valid_date($d['due_date'] ?? null);
             $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null;
+            $rec      = valid_recurrence($d['recurrence'] ?? 'none');
             if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
-            $stmt = $pdo->prepare('UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ?, due_time = ? WHERE id = ?');
-            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $id]);
+            $stmt = $pdo->prepare('UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ?, due_time = ?, recurrence = ? WHERE id = ?');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $rec, $id]);
             out(['ok' => true]);
 
         case 'toggle_task':
             $d  = body();
             $id = (int) ($d['id'] ?? 0);
-            $stmt = $pdo->prepare('UPDATE tasks SET done = 1 - done WHERE id = ?');
-            $stmt->execute([$id]);
-            out(['ok' => true]);
+            $pdo->prepare('UPDATE tasks SET done = 1 - done WHERE id = ?')->execute([$id]);
+
+            // Se acabou de ser CONCLUÍDA e é recorrente, cria a próxima ocorrência.
+            $sel = $pdo->prepare('SELECT * FROM tasks WHERE id = ?');
+            $sel->execute([$id]);
+            $task = $sel->fetch();
+            $spawned = null;
+            if ($task && (int) $task['done'] === 1 && ($task['recurrence'] ?? 'none') !== 'none') {
+                $nextDue = next_due($task['due_date'], $task['recurrence']);
+                $minPos  = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
+                $pos     = ($minPos === null) ? 0 : ((int) $minPos - 1);
+                $ins = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, recurrence, position) VALUES (?, ?, ?, ?, ?, ?, ?)');
+                $ins->execute([
+                    $task['title'], $task['category_id'], $task['priority'],
+                    $nextDue, $task['due_time'], $task['recurrence'], $pos,
+                ]);
+                $spawned = (int) $pdo->lastInsertId();
+                // A tarefa concluída deixa de ser recorrente (fica como histórico);
+                // a recorrência continua na nova ocorrência.
+                $pdo->prepare("UPDATE tasks SET recurrence = 'none' WHERE id = ?")->execute([$id]);
+            }
+            out(['ok' => true, 'spawned' => $spawned]);
 
         case 'delete_task':
             $d  = body();

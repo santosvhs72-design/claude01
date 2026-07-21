@@ -15,6 +15,18 @@ const PRIORITIES = [
     { v: 'baixa', label: '🟢 Baixa' },
 ];
 
+const RECURRENCES = [
+    { v: 'none',    label: '🔁 Não repete', badge: null },
+    { v: 'daily',   label: 'Diariamente',   badge: 'Diária' },
+    { v: 'weekly',  label: 'Semanalmente',  badge: 'Semanal' },
+    { v: 'monthly', label: 'Mensalmente',   badge: 'Mensal' },
+    { v: 'yearly',  label: 'Anualmente',    badge: 'Anual' },
+];
+function recurrenceBadge(v) {
+    const r = RECURRENCES.find(x => x.v === v);
+    return r && r.badge ? r.badge : null;
+}
+
 // ---------- API helpers ----------
 async function apiGet(action, params = {}) {
     const qs = new URLSearchParams({ action, ...params }).toString();
@@ -92,6 +104,11 @@ function categoryOptions(selectedId) {
 function priorityOptions(selected) {
     return PRIORITIES.map(p =>
         `<option value="${p.v}" ${p.v === selected ? 'selected' : ''}>${p.label}</option>`
+    ).join('');
+}
+function recurrenceOptions(selected) {
+    return RECURRENCES.map(r =>
+        `<option value="${r.v}" ${r.v === (selected || 'none') ? 'selected' : ''}>${r.label}</option>`
     ).join('');
 }
 
@@ -183,6 +200,7 @@ function renderTask(t) {
             <div class="task-meta">
                 ${dt ? `<span class="due ${ri ? ri.cls : ''}">${escapeHtml(dueLabel(t.due_date, t.due_time))}</span>` : ''}
                 ${ri ? `<span class="remain ${ri.cls}">${escapeHtml(ri.label)}</span>` : ''}
+                ${recurrenceBadge(t.recurrence) ? `<span class="recur" title="Tarefa recorrente">🔁 ${escapeHtml(recurrenceBadge(t.recurrence))}</span>` : ''}
                 ${t.category_name ? `<span class="badge" style="background:${escapeHtml(t.category_color)}">${escapeHtml(t.category_name)}</span>` : ''}
             </div>
             <div class="actions">
@@ -236,6 +254,7 @@ function openEdit(li, t) {
         <div class="row">
             <input type="date" class="e-due" value="${escapeHtml(t.due_date || '')}" title="Data limite">
             <input type="time" class="e-time" value="${escapeHtml(t.due_time || '')}" title="Hora de término (opcional)">
+            <select class="e-recur" title="Repetição">${recurrenceOptions(t.recurrence)}</select>
         </div>
         <div class="row buttons">
             <button type="button" class="btn-secondary e-cancel">Cancelar</button>
@@ -256,6 +275,7 @@ function openEdit(li, t) {
             priority: form.querySelector('.e-prio').value,
             due_date: form.querySelector('.e-due').value,
             due_time: form.querySelector('.e-time').value,
+            recurrence: form.querySelector('.e-recur').value,
         });
         if (r.error) { alert(r.error); return; }
         loadTasks();
@@ -353,11 +373,13 @@ document.getElementById('task-form').addEventListener('submit', async (e) => {
         priority: document.getElementById('task-priority').value,
         due_date: document.getElementById('task-due').value,
         due_time: document.getElementById('task-due-time').value,
+        recurrence: document.getElementById('task-recurrence').value,
     });
     if (r.error) { alert(r.error); return; }
     document.getElementById('task-title').value = '';
     document.getElementById('task-due').value = '';
     document.getElementById('task-due-time').value = '';
+    document.getElementById('task-recurrence').value = 'none';
     loadTasks();
 });
 
