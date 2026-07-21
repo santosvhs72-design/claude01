@@ -9,7 +9,8 @@ basta enviar os ficheiros por **FTP**.
 - ➕ Adicionar, ✏️ editar (inline) e ✅ concluir tarefas
 - 🗑 Eliminar tarefas
 - 🏷 Organizar tarefas por **categoria** (com cor personalizada)
-- ⏰ **Prazos** com destaque para tarefas de hoje e atrasadas
+- ⏰ **Prazos** com data e **hora de término opcional**
+- ⏳ **Tempo em falta** por tarefa (ex.: "Faltam 2d 3h" / "Atrasada há 5h"), atualizado automaticamente
 - 🔴🟡🟢 **Prioridades** (alta/média/baixa) com marca de cor na tarefa
 - 🗒 **Subtarefas** (checklist) com barra de progresso
 - ↕️ **Arrastar para reordenar** (drag & drop)

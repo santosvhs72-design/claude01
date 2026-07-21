@@ -30,7 +30,8 @@
                     <option value="media" selected>🟡 Média</option>
                     <option value="baixa">🟢 Baixa</option>
                 </select>
-                <input type="date" id="task-due" title="Prazo">
+                <input type="date" id="task-due" title="Data limite">
+                <input type="time" id="task-due-time" title="Hora de término (opcional)">
             </div>
         </form>
 

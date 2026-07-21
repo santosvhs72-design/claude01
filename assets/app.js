@@ -36,21 +36,37 @@ function escapeHtml(s) {
     ));
 }
 
-// ---------- Prazos ----------
-function todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-function dueInfo(due) {
+// ---------- Prazos e tempo em falta ----------
+// Constrói a data/hora limite. Sem hora, assume o fim do dia (23:59).
+function parseDue(due, time) {
     if (!due) return null;
-    const today = todayStr();
-    let cls = '', label = due;
-    if (due < today) cls = 'overdue';
-    else if (due === today) { cls = 'today'; label = 'Hoje'; }
-    // formato dd/mm
+    const t = /^\d{2}:\d{2}$/.test(time || '') ? time : '23:59';
+    const dt = new Date(`${due}T${t}:00`);
+    return isNaN(dt.getTime()) ? null : dt;
+}
+
+// Formata uma duração (ms) de forma legível: "2d 3h", "5h 20m", "12m", "<1m"
+function humanDuration(ms) {
+    const totalMin = Math.floor(Math.abs(ms) / 60000);
+    const days  = Math.floor(totalMin / 1440);
+    const hours = Math.floor((totalMin % 1440) / 60);
+    const mins  = totalMin % 60;
+    if (days >= 1)  return days < 7 && hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    if (hours >= 1) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return totalMin >= 1 ? `${mins}m` : '<1m';
+}
+
+// Etiqueta da data/hora limite (ex.: "25/07 18:30")
+function dueLabel(due, time) {
     const [y, m, d] = due.split('-');
-    if (label === due) label = `${d}/${m}`;
-    return { cls, label: (cls === 'overdue' ? '⚠ ' : '📅 ') + label };
+    return `📅 ${d}/${m}` + (/^\d{2}:\d{2}$/.test(time || '') ? ` ${time}` : '');
+}
+
+// Etiqueta do tempo em falta, relativa ao momento atual
+function remainInfo(dt) {
+    const diff = dt.getTime() - Date.now();
+    if (diff < 0) return { cls: 'overdue', label: `⚠ Atrasada há ${humanDuration(diff)}` };
+    return { cls: diff < 86400000 ? 'today' : '', label: `⏳ Faltam ${humanDuration(diff)}` };
 }
 
 // ---------- Tema ----------
@@ -149,8 +165,15 @@ function renderTask(t) {
 
     const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
     const subDone = subs.filter(s => s.done == 1).length;
-    const di = dueInfo(t.due_date);
+    const dt = parseDue(t.due_date, t.due_time);
     const isOpen = expanded.has(Number(t.id));
+    const showRemain = dt && t.done != 1;
+
+    if (dt) {
+        li.dataset.due = t.due_date;
+        li.dataset.time = t.due_time || '';
+    }
+    const ri = showRemain ? remainInfo(dt) : null;
 
     li.innerHTML = `
         <div class="task-row">
@@ -158,7 +181,8 @@ function renderTask(t) {
             <span class="check" title="Concluir">${t.done == 1 ? '✓' : ''}</span>
             <span class="title" title="Clica para editar">${escapeHtml(t.title)}</span>
             <div class="task-meta">
-                ${di ? `<span class="due ${di.cls}">${escapeHtml(di.label)}</span>` : ''}
+                ${dt ? `<span class="due ${ri ? ri.cls : ''}">${escapeHtml(dueLabel(t.due_date, t.due_time))}</span>` : ''}
+                ${ri ? `<span class="remain ${ri.cls}">${escapeHtml(ri.label)}</span>` : ''}
                 ${t.category_name ? `<span class="badge" style="background:${escapeHtml(t.category_color)}">${escapeHtml(t.category_name)}</span>` : ''}
             </div>
             <div class="actions">
@@ -208,7 +232,10 @@ function openEdit(li, t) {
         <div class="row">
             <select class="e-cat">${categoryOptions(t.category_id)}</select>
             <select class="e-prio">${priorityOptions(t.priority || 'media')}</select>
-            <input type="date" class="e-due" value="${escapeHtml(t.due_date || '')}">
+        </div>
+        <div class="row">
+            <input type="date" class="e-due" value="${escapeHtml(t.due_date || '')}" title="Data limite">
+            <input type="time" class="e-time" value="${escapeHtml(t.due_time || '')}" title="Hora de término (opcional)">
         </div>
         <div class="row buttons">
             <button type="button" class="btn-secondary e-cancel">Cancelar</button>
@@ -228,6 +255,7 @@ function openEdit(li, t) {
             category_id: form.querySelector('.e-cat').value,
             priority: form.querySelector('.e-prio').value,
             due_date: form.querySelector('.e-due').value,
+            due_time: form.querySelector('.e-time').value,
         });
         if (r.error) { alert(r.error); return; }
         loadTasks();
@@ -324,10 +352,12 @@ document.getElementById('task-form').addEventListener('submit', async (e) => {
         category_id: document.getElementById('task-category').value,
         priority: document.getElementById('task-priority').value,
         due_date: document.getElementById('task-due').value,
+        due_time: document.getElementById('task-due-time').value,
     });
     if (r.error) { alert(r.error); return; }
     document.getElementById('task-title').value = '';
     document.getElementById('task-due').value = '';
+    document.getElementById('task-due-time').value = '';
     loadTasks();
 });
 
@@ -367,6 +397,22 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     applyTheme(cur);
 });
+
+// ---------- Atualização automática do "tempo em falta" ----------
+function refreshCountdowns() {
+    document.querySelectorAll('.task-item').forEach(li => {
+        const span = li.querySelector('.remain');
+        const dt = parseDue(li.dataset.due, li.dataset.time);
+        if (!span || !dt) return;
+        const ri = remainInfo(dt);
+        span.className = 'remain ' + ri.cls;
+        span.textContent = ri.label;
+        // mantém o badge da data com a mesma cor de urgência
+        const due = li.querySelector('.due');
+        if (due) due.className = 'due ' + ri.cls;
+    });
+}
+setInterval(refreshCountdowns, 60000);
 
 // ---------- Arranque ----------
 (async function init() {

@@ -67,9 +67,11 @@ header h1 { font-size: 1.9rem; }
 .task-form-main { display: flex; gap: 8px; margin-bottom: 10px; }
 .task-form-main input[type="text"] { flex: 1; }
 .task-form-opts { display: flex; gap: 8px; flex-wrap: wrap; }
-.task-form-opts select, .task-form-opts input[type="date"] { flex: 1 1 120px; }
+.task-form-opts select,
+.task-form-opts input[type="date"],
+.task-form-opts input[type="time"] { flex: 1 1 120px; }
 
-input[type="text"], input[type="search"], input[type="date"], select {
+input[type="text"], input[type="search"], input[type="date"], input[type="time"], select {
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -165,6 +167,14 @@ button:hover { background: var(--primary-hover); }
 }
 .due.overdue { background: #fee2e2; color: #b91c1c; }
 .due.today   { background: #fef3c7; color: #b45309; }
+
+.remain {
+    font-size: .72rem; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+    background: #dbeafe; color: #1d4ed8;
+}
+.remain.overdue { background: #fee2e2; color: #b91c1c; }
+.remain.today   { background: #fef3c7; color: #b45309; }
 
 .actions { display: flex; gap: 2px; }
 .actions button, .sub-toggle {

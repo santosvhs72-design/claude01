@@ -50,6 +50,7 @@ function init_db(PDO $pdo): void
             category_id INTEGER,
             priority    TEXT NOT NULL DEFAULT 'media',
             due_date    TEXT,
+            due_time    TEXT,
             position    INTEGER NOT NULL DEFAULT 0,
             created_at  TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
@@ -91,6 +92,9 @@ function migrate_db(PDO $pdo): void
     }
     if (!isset($cols['due_date'])) {
         $pdo->exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
+    }
+    if (!isset($cols['due_time'])) {
+        $pdo->exec('ALTER TABLE tasks ADD COLUMN due_time TEXT');
     }
     if (!isset($cols['position'])) {
         $pdo->exec('ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0');

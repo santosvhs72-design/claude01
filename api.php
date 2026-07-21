@@ -38,6 +38,14 @@ function valid_date(?string $d): ?string
     return preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? $d : null;
 }
 
+// Aceita horas no formato HH:MM (ou vazio => null)
+function valid_time(?string $t): ?string
+{
+    $t = trim((string) $t);
+    if ($t === '') return null;
+    return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t) ? $t : null;
+}
+
 try {
     switch ($action) {
 
@@ -125,14 +133,15 @@ try {
             $catId    = isset($d['category_id']) && $d['category_id'] !== '' ? (int) $d['category_id'] : null;
             $priority = valid_priority($d['priority'] ?? 'media');
             $due      = valid_date($d['due_date'] ?? null);
+            $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null; // hora só faz sentido com data
             if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
 
             // Novas tarefas aparecem no topo (posição = menor - 1)
             $minPos = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
             $pos    = ($minPos === null) ? 0 : ((int) $minPos - 1);
 
-            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, position) VALUES (?, ?, ?, ?, ?)');
-            $stmt->execute([$title, $catId, $priority, $due, $pos]);
+            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, position) VALUES (?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $pos]);
             out(['id' => (int) $pdo->lastInsertId()], 201);
 
         case 'update_task':
@@ -143,9 +152,10 @@ try {
             $catId    = isset($d['category_id']) && $d['category_id'] !== '' ? (int) $d['category_id'] : null;
             $priority = valid_priority($d['priority'] ?? 'media');
             $due      = valid_date($d['due_date'] ?? null);
+            $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null;
             if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
-            $stmt = $pdo->prepare('UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ? WHERE id = ?');
-            $stmt->execute([$title, $catId, $priority, $due, $id]);
+            $stmt = $pdo->prepare('UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ?, due_time = ? WHERE id = ?');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $id]);
             out(['ok' => true]);
 
         case 'toggle_task':
