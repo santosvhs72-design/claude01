@@ -1,0 +1,3 @@
+# Base de dados SQLite gerada em tempo de execução
+data/*.sqlite
+data/*.sqlite-journal
