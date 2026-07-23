@@ -397,8 +397,24 @@ document.getElementById('task-form').addEventListener('submit', async (e) => {
     document.getElementById('task-due').value = '';
     document.getElementById('task-due-time').value = '';
     document.getElementById('task-recurrence').value = 'none';
+    resetFilters();   // garante que a tarefa nova fica visível
     loadTasks();
 });
+
+// Limpa os filtros (categoria, estado e pesquisa) e atualiza a interface.
+// A ordenação não é alterada, pois não esconde tarefas.
+function resetFilters() {
+    currentFilter = 'all';
+    currentStatus = 'all';
+    searchQuery = '';
+    localStorage.setItem('filter', 'all');
+    localStorage.setItem('status', 'all');
+    const search = document.getElementById('search');
+    if (search) search.value = '';
+    document.querySelectorAll('.status-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.status === 'all'));
+    renderFilters();  // repõe o chip "Todas" das categorias
+}
 
 document.getElementById('category-form').addEventListener('submit', async (e) => {
     e.preventDefault();
