@@ -38,6 +38,28 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
             <p class="subtitle">Organiza as tuas tarefas por categoria, prazo e prioridade</p>
         </header>
 
+        <!-- Secção: lista de tarefas -->
+        <section class="card section">
+            <h2 class="section-title">📋 As minhas tarefas</h2>
+            <div class="toolbar">
+                <input type="search" id="search" placeholder="🔍 Pesquisar tarefas...">
+                <div class="status-filter" id="status-filter">
+                    <button class="status-btn active" data-status="all">Todas</button>
+                    <button class="status-btn" data-status="active">Ativas</button>
+                    <button class="status-btn" data-status="done">Concluídas</button>
+                </div>
+                <select id="sort" title="Ordenar">
+                    <option value="manual">↕️ Ordem manual</option>
+                    <option value="created">🗓 Data de criação</option>
+                    <option value="due">⏰ Prazo</option>
+                    <option value="name">🔤 Nome (A–Z)</option>
+                </select>
+            </div>
+            <div class="filters" id="filters"></div>
+            <ul class="task-list" id="task-list"></ul>
+            <p class="empty" id="empty-msg" hidden>Sem tarefas por aqui. 🎉</p>
+        </section>
+
         <!-- Secção: criar tarefa -->
         <section class="card section">
             <h2 class="section-title">➕ Nova tarefa</h2>
@@ -64,28 +86,6 @@ $jsV  = @filemtime(__DIR__ . '/assets/app.js') ?: time();
                     </select>
                 </div>
             </form>
-        </section>
-
-        <!-- Secção: lista de tarefas -->
-        <section class="card section">
-            <h2 class="section-title">📋 As minhas tarefas</h2>
-            <div class="toolbar">
-                <input type="search" id="search" placeholder="🔍 Pesquisar tarefas...">
-                <div class="status-filter" id="status-filter">
-                    <button class="status-btn active" data-status="all">Todas</button>
-                    <button class="status-btn" data-status="active">Ativas</button>
-                    <button class="status-btn" data-status="done">Concluídas</button>
-                </div>
-                <select id="sort" title="Ordenar">
-                    <option value="manual">↕️ Ordem manual</option>
-                    <option value="created">🗓 Data de criação</option>
-                    <option value="due">⏰ Prazo</option>
-                    <option value="name">🔤 Nome (A–Z)</option>
-                </select>
-            </div>
-            <div class="filters" id="filters"></div>
-            <ul class="task-list" id="task-list"></ul>
-            <p class="empty" id="empty-msg" hidden>Sem tarefas por aqui. 🎉</p>
         </section>
 
         <!-- Secção: categorias -->
