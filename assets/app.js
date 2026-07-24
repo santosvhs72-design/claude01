@@ -8,7 +8,8 @@ let currentFilter = localStorage.getItem('filter') || 'all';
 let currentStatus = localStorage.getItem('status') || 'all';
 let currentSort = localStorage.getItem('sort') || 'manual';
 let searchQuery = '';
-const expanded = new Set(); // ids de tarefas com subtarefas visíveis
+const expanded = new Set();      // ids de tarefas com subtarefas visíveis
+const expandedNotes = new Set(); // ids de tarefas com notas visíveis
 
 const PRIORITIES = [
     { v: 'alta',  label: '🔴 Alta' },
@@ -196,8 +197,10 @@ function renderTask(t) {
 
     const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
     const subDone = subs.filter(s => s.done == 1).length;
+    const notes = Array.isArray(t.notes) ? t.notes : [];
     const dt = parseDue(t.due_date, t.due_time);
     const isOpen = expanded.has(Number(t.id));
+    const isNotesOpen = expandedNotes.has(Number(t.id));
     const showRemain = dt && t.done != 1;
 
     if (dt) {
@@ -221,12 +224,14 @@ function renderTask(t) {
                 </div>
             </div>
             <div class="actions">
+                <button class="notes-toggle" title="Notas">📝${notes.length ? ` ${notes.length}` : ''}</button>
                 <button class="sub-toggle" title="Subtarefas">🗒${subs.length ? ` ${subDone}/${subs.length}` : ''}</button>
                 <button class="edit" title="Editar">✏️</button>
                 <button class="del" title="Eliminar">✕</button>
             </div>
         </div>
         <div class="subtasks" ${isOpen ? '' : 'hidden'}></div>
+        <div class="notes" ${isNotesOpen ? '' : 'hidden'}></div>
     `;
 
     // Concluir
@@ -251,6 +256,16 @@ function renderTask(t) {
         else expanded.delete(Number(t.id));
     });
     if (isOpen) renderSubtasks(subBox, t.id, subs);
+
+    // Notas
+    const notesBox = li.querySelector('.notes');
+    li.querySelector('.notes-toggle').addEventListener('click', () => {
+        const nowOpen = notesBox.hidden;
+        notesBox.hidden = !nowOpen;
+        if (nowOpen) { expandedNotes.add(Number(t.id)); renderNotes(notesBox, t.id, notes); }
+        else expandedNotes.delete(Number(t.id));
+    });
+    if (isNotesOpen) renderNotes(notesBox, t.id, notes);
 
     if (canDrag) attachDrag(li);
     return li;
@@ -355,6 +370,65 @@ async function refreshSubtasks(box, taskId) {
     if (li) {
         const done = subs.filter(s => s.done == 1).length;
         li.querySelector('.sub-toggle').textContent = `🗒${subs.length ? ` ${done}/${subs.length}` : ''}`;
+    }
+}
+
+// ---------- Notas ----------
+// Data/hora curta a partir de "YYYY-MM-DD HH:MM:SS"
+function noteStamp(createdAt) {
+    if (!createdAt) return '';
+    const [datePart, timePart] = String(createdAt).split(' ');
+    const [y, m, d] = (datePart || '').split('-');
+    const hm = (timePart || '').slice(0, 5);
+    return d && m ? `${d}/${m}/${y}${hm ? ' ' + hm : ''}` : '';
+}
+
+function renderNotes(box, taskId, notes) {
+    box.innerHTML = `
+        <ul class="note-list">
+            ${notes.map(n => `
+                <li class="note-item" data-id="${n.id}">
+                    <div class="note-body">${escapeHtml(n.body)}</div>
+                    <div class="note-foot">
+                        <span class="note-stamp">${escapeHtml(noteStamp(n.created_at))}</span>
+                        <button class="note-del" title="Eliminar nota">✕</button>
+                    </div>
+                </li>`).join('')}
+        </ul>
+        <form class="note-add">
+            <input type="text" placeholder="Acrescentar nota..." maxlength="500" required>
+            <button type="submit">Adicionar nota</button>
+        </form>
+    `;
+
+    box.querySelectorAll('.note-item').forEach(li => {
+        const id = Number(li.dataset.id);
+        li.querySelector('.note-del').addEventListener('click', async () => {
+            await apiPost('delete_note', { id });
+            await refreshNotes(box, taskId);
+        });
+    });
+
+    box.querySelector('.note-add').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = e.target.querySelector('input');
+        const body = input.value.trim();
+        if (!body) return;
+        await apiPost('add_note', { task_id: taskId, body });
+        input.value = '';
+        await refreshNotes(box, taskId);
+    });
+}
+
+// Recarrega apenas as notas de uma tarefa (e atualiza o contador no botão)
+async function refreshNotes(box, taskId) {
+    const tasks = await apiGet('tasks', { category: 'all', status: 'all' });
+    const t = tasks.find(x => Number(x.id) === Number(taskId));
+    const notes = t ? t.notes : [];
+    renderNotes(box, taskId, notes);
+    const li = box.closest('.task-item');
+    if (li) {
+        li.querySelector('.notes-toggle').textContent = `📝${notes.length ? ` ${notes.length}` : ''}`;
     }
 }
 

@@ -290,6 +290,25 @@ button:hover { background: var(--primary-hover); }
 .sub-add input { flex: 1; padding: 6px 10px; font-size: .85rem; }
 .sub-add button { padding: 6px 12px; font-size: .85rem; }
 
+/* Notas */
+.notes { margin: 8px 0 2px 34px; }
+.note-list { list-style: none; }
+.note-item {
+    background: var(--hover-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+.note-body { font-size: .9rem; word-break: break-word; white-space: pre-wrap; }
+.note-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.note-stamp { font-size: .72rem; color: var(--muted); }
+.note-del { background: transparent; color: var(--muted); padding: 2px 6px; font-size: .85rem; }
+.note-del:hover { color: var(--danger); background: transparent; }
+.note-add { display: flex; gap: 6px; margin-top: 6px; }
+.note-add input { flex: 1; padding: 6px 10px; font-size: .85rem; }
+.note-add button { padding: 6px 12px; font-size: .85rem; white-space: nowrap; }
+
 /* Edição inline */
 .edit-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .edit-form .row { display: flex; gap: 8px; flex-wrap: wrap; }

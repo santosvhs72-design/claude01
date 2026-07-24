@@ -69,6 +69,16 @@ function init_db(PDO $pdo): void
         )
     SQL);
 
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS notes (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id    INTEGER NOT NULL,
+            body       TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+        )
+    SQL);
+
     $count = (int) $pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
     if ($count === 0) {
         $stmt = $pdo->prepare('INSERT INTO categories (name, color) VALUES (?, ?)');

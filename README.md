@@ -16,6 +16,7 @@ basta enviar os ficheiros por **FTP**.
 - 🔔 **Lembretes**: notificação quando uma tarefa está a chegar à hora (janela de ±30 min, sem repetir)
 - 🔴🟡🟢 **Prioridades** (alta/média/baixa) com marca de cor na tarefa
 - 🗒 **Subtarefas** (checklist) com barra de progresso
+- 📝 **Notas** por tarefa: registo datado de progresso (ex.: "APs inventariados"), sem fechar a tarefa
 - ↕️ **Arrastar para reordenar** (drag & drop)
 - 🔍 **Pesquisa** por texto + **filtros combinados** (categoria + estado: todas/ativas/concluídas)
 - 🗓 **Data de criação** visível em cada tarefa

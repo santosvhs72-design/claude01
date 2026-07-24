@@ -145,18 +145,28 @@ try {
             $stmt->execute($params);
             $tasks = $stmt->fetchAll();
 
-            // Anexa subtarefas (uma única query)
+            // Anexa subtarefas e notas (uma query cada)
             if ($tasks) {
                 $ids = array_column($tasks, 'id');
                 $in  = implode(',', array_fill(0, count($ids), '?'));
+
                 $sub = $pdo->prepare("SELECT * FROM subtasks WHERE task_id IN ($in) ORDER BY position ASC, id ASC");
                 $sub->execute($ids);
-                $byTask = [];
+                $subByTask = [];
                 foreach ($sub->fetchAll() as $s) {
-                    $byTask[$s['task_id']][] = $s;
+                    $subByTask[$s['task_id']][] = $s;
                 }
+
+                $nt = $pdo->prepare("SELECT * FROM notes WHERE task_id IN ($in) ORDER BY created_at ASC, id ASC");
+                $nt->execute($ids);
+                $notesByTask = [];
+                foreach ($nt->fetchAll() as $n) {
+                    $notesByTask[$n['task_id']][] = $n;
+                }
+
                 foreach ($tasks as &$t) {
-                    $t['subtasks'] = $byTask[$t['id']] ?? [];
+                    $t['subtasks'] = $subByTask[$t['id']] ?? [];
+                    $t['notes']    = $notesByTask[$t['id']] ?? [];
                 }
                 unset($t);
             }
@@ -264,6 +274,23 @@ try {
             $d  = body();
             $id = (int) ($d['id'] ?? 0);
             $stmt = $pdo->prepare('DELETE FROM subtasks WHERE id = ?');
+            $stmt->execute([$id]);
+            out(['ok' => true]);
+
+        // ---------- NOTAS ----------
+        case 'add_note':
+            $d      = body();
+            $taskId = (int) ($d['task_id'] ?? 0);
+            $bodyTxt = trim($d['body'] ?? '');
+            if ($taskId <= 0 || $bodyTxt === '') out(['error' => 'Dados inválidos.'], 400);
+            $stmt = $pdo->prepare('INSERT INTO notes (task_id, body) VALUES (?, ?)');
+            $stmt->execute([$taskId, $bodyTxt]);
+            out(['id' => (int) $pdo->lastInsertId()], 201);
+
+        case 'delete_note':
+            $d  = body();
+            $id = (int) ($d['id'] ?? 0);
+            $stmt = $pdo->prepare('DELETE FROM notes WHERE id = ?');
             $stmt->execute([$id]);
             out(['ok' => true]);
 
