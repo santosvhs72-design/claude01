@@ -264,8 +264,13 @@ button:hover { background: var(--primary-hover); }
     padding: 4px 8px; font-size: 1rem; line-height: 1;
 }
 .actions button:hover { color: var(--danger); background: transparent; }
-.sub-toggle { border: none; cursor: pointer; }
-.sub-toggle:hover { color: var(--primary); background: transparent; }
+.sub-toggle, .notes-toggle { border: none; cursor: pointer; border-radius: 6px; }
+.sub-toggle:hover, .notes-toggle:hover { color: var(--primary); background: transparent; }
+/* Painel aberto: botão realçado, para deixar claro que é um interruptor */
+.notes-toggle.active, .sub-toggle.active {
+    color: var(--primary);
+    background: var(--hover-bg);
+}
 
 /* Subtarefas */
 .subtasks { margin: 8px 0 2px 34px; }

@@ -224,8 +224,8 @@ function renderTask(t) {
                 </div>
             </div>
             <div class="actions">
-                <button class="notes-toggle" title="Notas">📝${notes.length ? ` ${notes.length}` : ''}</button>
-                <button class="sub-toggle" title="Subtarefas">🗒${subs.length ? ` ${subDone}/${subs.length}` : ''}</button>
+                <button class="notes-toggle ${isNotesOpen ? 'active' : ''}" title="Notas">📝${notes.length ? ` ${notes.length}` : ''}</button>
+                <button class="sub-toggle ${isOpen ? 'active' : ''}" title="Subtarefas">🗒${subs.length ? ` ${subDone}/${subs.length}` : ''}</button>
                 <button class="edit" title="Editar">✏️</button>
                 <button class="del" title="Eliminar">✕</button>
             </div>
@@ -249,9 +249,10 @@ function renderTask(t) {
     li.querySelector('.title').addEventListener('click', () => openEdit(li, t));
     // Subtarefas
     const subBox = li.querySelector('.subtasks');
-    li.querySelector('.sub-toggle').addEventListener('click', () => {
+    li.querySelector('.sub-toggle').addEventListener('click', (e) => {
         const nowOpen = subBox.hidden;
         subBox.hidden = !nowOpen;
+        e.currentTarget.classList.toggle('active', nowOpen);
         if (nowOpen) { expanded.add(Number(t.id)); renderSubtasks(subBox, t.id, subs); }
         else expanded.delete(Number(t.id));
     });
@@ -259,9 +260,10 @@ function renderTask(t) {
 
     // Notas
     const notesBox = li.querySelector('.notes');
-    li.querySelector('.notes-toggle').addEventListener('click', () => {
+    li.querySelector('.notes-toggle').addEventListener('click', (e) => {
         const nowOpen = notesBox.hidden;
         notesBox.hidden = !nowOpen;
+        e.currentTarget.classList.toggle('active', nowOpen);
         if (nowOpen) { expandedNotes.add(Number(t.id)); renderNotes(notesBox, t.id, notes); }
         else expandedNotes.delete(Number(t.id));
     });
