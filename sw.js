@@ -1,5 +1,5 @@
 /* Service worker da PWA "Minhas Tarefas" */
-const CACHE = 'tarefas-v3';
+const CACHE = 'tarefas-v4';
 
 // Shell da aplicação (ficheiros estáticos essenciais)
 const SHELL = [
@@ -62,19 +62,18 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Estáticos (CSS/JS/ícones): cache primeiro, com atualização em segundo plano.
+    // Estáticos (CSS/JS/ícones): REDE PRIMEIRO, para apanhar sempre a versão
+    // mais recente quando há ligação; só cai para a cache quando está offline.
+    // (Cache-primeiro fazia servir código antigo até um Ctrl+Shift+R.)
     event.respondWith(
-        caches.match(req, { ignoreSearch: true }).then((cached) => {
-            const network = fetch(req)
-                .then((res) => {
-                    if (res && res.ok) {
-                        const copy = res.clone();
-                        caches.open(CACHE).then((c) => c.put(req, copy));
-                    }
-                    return res;
-                })
-                .catch(() => cached);
-            return cached || network;
-        })
+        fetch(req)
+            .then((res) => {
+                if (res && res.ok) {
+                    const copy = res.clone();
+                    caches.open(CACHE).then((c) => c.put(req, copy));
+                }
+                return res;
+            })
+            .catch(() => caches.match(req, { ignoreSearch: true }))
     );
 });
