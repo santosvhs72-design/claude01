@@ -299,15 +299,24 @@ function openEdit(li, t) {
     form.querySelector('.e-title').focus();
 
     // Ao editar, mostra também as notas da tarefa (se houver).
+    // Guarda o estado anterior para as voltar a fechar quando a edição terminar.
     const notesBox = li.querySelector('.notes');
-    if (notesBox && Array.isArray(t.notes) && t.notes.length) {
+    const notesToggle = li.querySelector('.notes-toggle');
+    const notesWereOpen = notesBox ? !notesBox.hidden : false;
+    if (notesBox && !notesWereOpen && Array.isArray(t.notes) && t.notes.length) {
         notesBox.hidden = false;
-        expandedNotes.add(Number(t.id));
-        li.querySelector('.notes-toggle').classList.add('active');
         renderNotes(notesBox, t.id, t.notes);
     }
+    // Se as notas só abriram por causa da edição, repõe-nas (fechadas).
+    const restoreNotes = () => {
+        if (notesBox && !notesWereOpen) {
+            notesBox.hidden = true;
+            expandedNotes.delete(Number(t.id));
+            if (notesToggle) notesToggle.classList.remove('active');
+        }
+    };
 
-    const close = () => { form.remove(); row.style.display = ''; };
+    const close = () => { form.remove(); row.style.display = ''; restoreNotes(); };
     form.querySelector('.e-cancel').addEventListener('click', close);
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -321,6 +330,7 @@ function openEdit(li, t) {
             recurrence: form.querySelector('.e-recur').value,
         });
         if (r.error) { alert(r.error); return; }
+        restoreNotes();
         loadTasks();
     });
 }
