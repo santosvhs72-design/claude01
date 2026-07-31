@@ -298,6 +298,15 @@ function openEdit(li, t) {
     li.insertBefore(form, row.nextSibling);
     form.querySelector('.e-title').focus();
 
+    // Ao editar, mostra também as notas da tarefa (se houver).
+    const notesBox = li.querySelector('.notes');
+    if (notesBox && Array.isArray(t.notes) && t.notes.length) {
+        notesBox.hidden = false;
+        expandedNotes.add(Number(t.id));
+        li.querySelector('.notes-toggle').classList.add('active');
+        renderNotes(notesBox, t.id, t.notes);
+    }
+
     const close = () => { form.remove(); row.style.display = ''; };
     form.querySelector('.e-cancel').addEventListener('click', close);
     form.addEventListener('submit', async (e) => {
