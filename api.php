@@ -54,7 +54,8 @@ function valid_recurrence(string $r): string
 // Calcula a data da próxima ocorrência a partir de uma data base (ou de hoje).
 // Se a tarefa estava atrasada, avança tantos intervalos quantos os necessários
 // para a próxima ocorrência ficar no futuro (nunca nasce já atrasada).
-function next_due(?string $due, string $rec): ?string
+// A hora limite é tida em conta: sem hora, assume-se o fim do dia (23:59).
+function next_due(?string $due, string $rec, ?string $time = null): ?string
 {
     $steps = [
         'daily'   => '+1 day',
@@ -67,14 +68,19 @@ function next_due(?string $due, string $rec): ?string
     $base = $due ?: date('Y-m-d');
     $dt = DateTime::createFromFormat('Y-m-d', $base);
     if (!$dt) return $due;
-    $dt->setTime(0, 0, 0);
 
-    $today = new DateTime('today');
+    // Hora do prazo (sem hora definida, conta até ao fim do dia)
+    [$h, $min] = preg_match('/^(\d{2}):(\d{2})$/', (string) $time, $m)
+        ? [(int) $m[1], (int) $m[2]]
+        : [23, 59];
+    $dt->setTime($h, $min, 0);
+
+    $now   = new DateTime();
     $guard = 0; // salvaguarda contra ciclos infinitos
     do {
         $dt->modify($steps[$rec]);
         $guard++;
-    } while ($dt < $today && $guard < 1000);
+    } while ($dt <= $now && $guard < 1000);
 
     return $dt->format('Y-m-d');
 }
@@ -228,7 +234,7 @@ try {
             $task = $sel->fetch();
             $spawned = null;
             if ($task && (int) $task['done'] === 1 && ($task['recurrence'] ?? 'none') !== 'none') {
-                $nextDue = next_due($task['due_date'], $task['recurrence']);
+                $nextDue = next_due($task['due_date'], $task['recurrence'], $task['due_time']);
                 $minPos  = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
                 $pos     = ($minPos === null) ? 0 : ((int) $minPos - 1);
                 $ins = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, recurrence, position) VALUES (?, ?, ?, ?, ?, ?, ?)');
