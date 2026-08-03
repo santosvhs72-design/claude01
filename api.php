@@ -51,19 +51,31 @@ function valid_recurrence(string $r): string
     return in_array($r, ['none', 'daily', 'weekly', 'monthly', 'yearly'], true) ? $r : 'none';
 }
 
-// Calcula a data da próxima ocorrência a partir de uma data base (ou de hoje)
+// Calcula a data da próxima ocorrência a partir de uma data base (ou de hoje).
+// Se a tarefa estava atrasada, avança tantos intervalos quantos os necessários
+// para a próxima ocorrência ficar no futuro (nunca nasce já atrasada).
 function next_due(?string $due, string $rec): ?string
 {
+    $steps = [
+        'daily'   => '+1 day',
+        'weekly'  => '+1 week',
+        'monthly' => '+1 month',
+        'yearly'  => '+1 year',
+    ];
+    if (!isset($steps[$rec])) return $due;
+
     $base = $due ?: date('Y-m-d');
     $dt = DateTime::createFromFormat('Y-m-d', $base);
     if (!$dt) return $due;
-    switch ($rec) {
-        case 'daily':   $dt->modify('+1 day');   break;
-        case 'weekly':  $dt->modify('+1 week');  break;
-        case 'monthly': $dt->modify('+1 month'); break;
-        case 'yearly':  $dt->modify('+1 year');  break;
-        default:        return $due;
-    }
+    $dt->setTime(0, 0, 0);
+
+    $today = new DateTime('today');
+    $guard = 0; // salvaguarda contra ciclos infinitos
+    do {
+        $dt->modify($steps[$rec]);
+        $guard++;
+    } while ($dt < $today && $guard < 1000);
+
     return $dt->format('Y-m-d');
 }
 
