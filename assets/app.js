@@ -369,6 +369,8 @@ function renderSubtasks(box, taskId, subs) {
             await refreshSubtasks(box, taskId);
         });
         li.querySelector('.sub-del').addEventListener('click', async () => {
+            const titulo = li.querySelector('.sub-title')?.textContent || '';
+            if (!confirm(`Eliminar a subtarefa "${titulo}"?`)) return;
             await apiPost('delete_subtask', { id });
             await refreshSubtasks(box, taskId);
         });
@@ -430,6 +432,9 @@ function renderNotes(box, taskId, notes) {
     box.querySelectorAll('.note-item').forEach(li => {
         const id = Number(li.dataset.id);
         li.querySelector('.note-del').addEventListener('click', async () => {
+            const texto = (li.querySelector('.note-body')?.textContent || '').trim();
+            const resumo = texto.length > 60 ? texto.slice(0, 60) + '…' : texto;
+            if (!confirm(`Eliminar esta nota?\n\n"${resumo}"`)) return;
             await apiPost('delete_note', { id });
             await refreshNotes(box, taskId);
         });
