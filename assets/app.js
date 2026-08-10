@@ -239,8 +239,13 @@ function renderTask(t) {
         await apiPost('toggle_task', { id: Number(t.id) });
         loadTasks();
     });
-    // Eliminar
+    // Eliminar (com confirmação)
     li.querySelector('.del').addEventListener('click', async () => {
+        const extras = [];
+        if (subs.length)  extras.push(`${subs.length} subtarefa${subs.length > 1 ? 's' : ''}`);
+        if (notes.length) extras.push(`${notes.length} nota${notes.length > 1 ? 's' : ''}`);
+        const detalhe = extras.length ? `\n\nSerão também eliminadas: ${extras.join(' e ')}.` : '';
+        if (!confirm(`Eliminar a tarefa "${t.title}"?${detalhe}\n\nEsta ação não pode ser anulada.`)) return;
         await apiPost('delete_task', { id: Number(t.id) });
         loadTasks();
     });
