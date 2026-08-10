@@ -1,6 +1,6 @@
 <?php
 /**
- * API JSON para tarefas e categorias.
+ * API JSON para tarefas, subtarefas e categorias.
  * Chamada pelo JavaScript (fetch) através de: api.php?action=...
  */
 
@@ -10,12 +10,10 @@ header('Content-Type: application/json; charset=utf-8');
 
 $pdo    = get_db();
 $action = $_GET['action'] ?? '';
-$method = $_SERVER['REQUEST_METHOD'];
 
-// Lê corpo JSON (para POST/PUT)
 function body(): array
 {
-    $raw = file_get_contents('php://input');
+    $raw  = file_get_contents('php://input');
     $data = json_decode($raw, true);
     return is_array($data) ? $data : [];
 }
@@ -27,6 +25,66 @@ function out($data, int $code = 200): void
     exit;
 }
 
+function valid_priority(string $p): string
+{
+    return in_array($p, ['alta', 'media', 'baixa'], true) ? $p : 'media';
+}
+
+// Aceita datas no formato YYYY-MM-DD (ou vazio => null)
+function valid_date(?string $d): ?string
+{
+    $d = trim((string) $d);
+    if ($d === '') return null;
+    return preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? $d : null;
+}
+
+// Aceita horas no formato HH:MM (ou vazio => null)
+function valid_time(?string $t): ?string
+{
+    $t = trim((string) $t);
+    if ($t === '') return null;
+    return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t) ? $t : null;
+}
+
+function valid_recurrence(string $r): string
+{
+    return in_array($r, ['none', 'daily', 'weekly', 'monthly', 'yearly'], true) ? $r : 'none';
+}
+
+// Calcula a data da próxima ocorrência a partir de uma data base (ou de hoje).
+// Se a tarefa estava atrasada, avança tantos intervalos quantos os necessários
+// para a próxima ocorrência ficar no futuro (nunca nasce já atrasada).
+// A hora limite é tida em conta: sem hora, assume-se o fim do dia (23:59).
+function next_due(?string $due, string $rec, ?string $time = null): ?string
+{
+    $steps = [
+        'daily'   => '+1 day',
+        'weekly'  => '+1 week',
+        'monthly' => '+1 month',
+        'yearly'  => '+1 year',
+    ];
+    if (!isset($steps[$rec])) return $due;
+
+    $base = $due ?: date('Y-m-d');
+    $dt = DateTime::createFromFormat('Y-m-d', $base);
+    if (!$dt) return $due;
+
+    // Hora do prazo (sem hora definida, conta até ao fim do dia)
+    [$h, $min] = preg_match('/^(\d{2}):(\d{2})$/', (string) $time, $m)
+        ? [(int) $m[1], (int) $m[2]]
+        : [23, 59];
+    $dt->setTime($h, $min, 0);
+
+    $now   = new DateTime();
+    $guard = 0; // salvaguarda contra ciclos infinitos
+    do {
+        $dt->modify($steps[$rec]);
+        $guard++;
+    } while ($dt <= $now && $guard < 1000);
+
+    return $dt->format('Y-m-d');
+}
+
 try {
     switch ($action) {
 
@@ -34,15 +92,12 @@ try {
         case 'categories':
             $rows = $pdo->query('SELECT * FROM categories ORDER BY name COLLATE NOCASE')->fetchAll();
             out($rows);
-            // no break (out() faz exit)
 
         case 'add_category':
-            $d = body();
+            $d     = body();
             $name  = trim($d['name'] ?? '');
             $color = trim($d['color'] ?? '#3b82f6');
-            if ($name === '') {
-                out(['error' => 'O nome da categoria é obrigatório.'], 400);
-            }
+            if ($name === '') out(['error' => 'O nome da categoria é obrigatório.'], 400);
             $stmt = $pdo->prepare('INSERT INTO categories (name, color) VALUES (?, ?)');
             try {
                 $stmt->execute([$name, $color]);
@@ -60,50 +115,200 @@ try {
 
         // ---------- TAREFAS ----------
         case 'tasks':
-            $cat = $_GET['category'] ?? '';
+            $cat    = $_GET['category'] ?? 'all';
+            $status = $_GET['status'] ?? 'all';   // all | active | done
+            $q      = trim($_GET['q'] ?? '');
+            $sort   = $_GET['sort'] ?? 'manual';   // manual | created | due | name
+
+            $where  = [];
+            $params = [];
+
             if ($cat !== '' && $cat !== 'all') {
-                $stmt = $pdo->prepare('
-                    SELECT t.*, c.name AS category_name, c.color AS category_color
-                    FROM tasks t
-                    LEFT JOIN categories c ON c.id = t.category_id
-                    WHERE t.category_id = ?
-                    ORDER BY t.done, t.created_at DESC
-                ');
-                $stmt->execute([(int) $cat]);
-                $rows = $stmt->fetchAll();
-            } else {
-                $rows = $pdo->query('
-                    SELECT t.*, c.name AS category_name, c.color AS category_color
-                    FROM tasks t
-                    LEFT JOIN categories c ON c.id = t.category_id
-                    ORDER BY t.done, t.created_at DESC
-                ')->fetchAll();
+                $where[] = 't.category_id = ?';
+                $params[] = (int) $cat;
             }
-            out($rows);
+            if ($status === 'active') {
+                $where[] = 't.done = 0';
+            } elseif ($status === 'done') {
+                $where[] = 't.done = 1';
+            }
+            if ($q !== '') {
+                $where[] = 't.title LIKE ?';
+                $params[] = '%' . $q . '%';
+            }
+
+            $sql = '
+                SELECT t.*, c.name AS category_name, c.color AS category_color
+                FROM tasks t
+                LEFT JOIN categories c ON c.id = t.category_id';
+            if ($where) {
+                $sql .= ' WHERE ' . implode(' AND ', $where);
+            }
+            switch ($sort) {
+                case 'created': // mais recentes primeiro
+                    $order = 't.done ASC, t.created_at DESC, t.id DESC';
+                    break;
+                case 'due':      // por prazo, sem data no fim
+                    $order = 't.done ASC, (t.due_date IS NULL) ASC, t.due_date ASC, t.due_time ASC, t.id DESC';
+                    break;
+                case 'name':     // alfabética
+                    $order = 't.done ASC, t.title COLLATE NOCASE ASC, t.id ASC';
+                    break;
+                default:         // manual (drag & drop)
+                    $order = 't.done ASC, t.position ASC, t.created_at DESC';
+            }
+            $sql .= ' ORDER BY ' . $order;
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $tasks = $stmt->fetchAll();
+
+            // Anexa subtarefas e notas (uma query cada)
+            if ($tasks) {
+                $ids = array_column($tasks, 'id');
+                $in  = implode(',', array_fill(0, count($ids), '?'));
+
+                $sub = $pdo->prepare("SELECT * FROM subtasks WHERE task_id IN ($in) ORDER BY position ASC, id ASC");
+                $sub->execute($ids);
+                $subByTask = [];
+                foreach ($sub->fetchAll() as $s) {
+                    $subByTask[$s['task_id']][] = $s;
+                }
+
+                $nt = $pdo->prepare("SELECT * FROM notes WHERE task_id IN ($in) ORDER BY created_at ASC, id ASC");
+                $nt->execute($ids);
+                $notesByTask = [];
+                foreach ($nt->fetchAll() as $n) {
+                    $notesByTask[$n['task_id']][] = $n;
+                }
+
+                foreach ($tasks as &$t) {
+                    $t['subtasks'] = $subByTask[$t['id']] ?? [];
+                    $t['notes']    = $notesByTask[$t['id']] ?? [];
+                }
+                unset($t);
+            }
+            out($tasks);
 
         case 'add_task':
-            $d     = body();
-            $title = trim($d['title'] ?? '');
-            $catId = isset($d['category_id']) && $d['category_id'] !== ''
-                ? (int) $d['category_id'] : null;
-            if ($title === '') {
-                out(['error' => 'O título da tarefa é obrigatório.'], 400);
-            }
-            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id) VALUES (?, ?)');
-            $stmt->execute([$title, $catId]);
+            $d        = body();
+            $title    = trim($d['title'] ?? '');
+            $catId    = isset($d['category_id']) && $d['category_id'] !== '' ? (int) $d['category_id'] : null;
+            $priority = valid_priority($d['priority'] ?? 'media');
+            $due      = valid_date($d['due_date'] ?? null);
+            $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null; // hora só faz sentido com data
+            $rec      = valid_recurrence($d['recurrence'] ?? 'none');
+            if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
+
+            // Novas tarefas aparecem no topo (posição = menor - 1)
+            $minPos = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
+            $pos    = ($minPos === null) ? 0 : ((int) $minPos - 1);
+
+            $stmt = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, recurrence, position) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $rec, $pos]);
             out(['id' => (int) $pdo->lastInsertId()], 201);
+
+        case 'update_task':
+            $d  = body();
+            $id = (int) ($d['id'] ?? 0);
+            if ($id <= 0) out(['error' => 'Tarefa inválida.'], 400);
+            $title    = trim($d['title'] ?? '');
+            $catId    = isset($d['category_id']) && $d['category_id'] !== '' ? (int) $d['category_id'] : null;
+            $priority = valid_priority($d['priority'] ?? 'media');
+            $due      = valid_date($d['due_date'] ?? null);
+            $dueTime  = $due ? valid_time($d['due_time'] ?? null) : null;
+            $rec      = valid_recurrence($d['recurrence'] ?? 'none');
+            if ($title === '') out(['error' => 'O título da tarefa é obrigatório.'], 400);
+            $stmt = $pdo->prepare('UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ?, due_time = ?, recurrence = ? WHERE id = ?');
+            $stmt->execute([$title, $catId, $priority, $due, $dueTime, $rec, $id]);
+            out(['ok' => true]);
 
         case 'toggle_task':
             $d  = body();
             $id = (int) ($d['id'] ?? 0);
-            $stmt = $pdo->prepare('UPDATE tasks SET done = 1 - done WHERE id = ?');
-            $stmt->execute([$id]);
-            out(['ok' => true]);
+            $pdo->prepare('UPDATE tasks SET done = 1 - done WHERE id = ?')->execute([$id]);
+
+            // Se acabou de ser CONCLUÍDA e é recorrente, cria a próxima ocorrência.
+            $sel = $pdo->prepare('SELECT * FROM tasks WHERE id = ?');
+            $sel->execute([$id]);
+            $task = $sel->fetch();
+            $spawned = null;
+            if ($task && (int) $task['done'] === 1 && ($task['recurrence'] ?? 'none') !== 'none') {
+                $nextDue = next_due($task['due_date'], $task['recurrence'], $task['due_time']);
+                $minPos  = $pdo->query('SELECT MIN(position) FROM tasks')->fetchColumn();
+                $pos     = ($minPos === null) ? 0 : ((int) $minPos - 1);
+                $ins = $pdo->prepare('INSERT INTO tasks (title, category_id, priority, due_date, due_time, recurrence, position) VALUES (?, ?, ?, ?, ?, ?, ?)');
+                $ins->execute([
+                    $task['title'], $task['category_id'], $task['priority'],
+                    $nextDue, $task['due_time'], $task['recurrence'], $pos,
+                ]);
+                $spawned = (int) $pdo->lastInsertId();
+                // A tarefa concluída deixa de ser recorrente (fica como histórico);
+                // a recorrência continua na nova ocorrência.
+                $pdo->prepare("UPDATE tasks SET recurrence = 'none' WHERE id = ?")->execute([$id]);
+            }
+            out(['ok' => true, 'spawned' => $spawned]);
 
         case 'delete_task':
             $d  = body();
             $id = (int) ($d['id'] ?? 0);
             $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = ?');
+            $stmt->execute([$id]);
+            out(['ok' => true]);
+
+        case 'reorder_tasks':
+            $d   = body();
+            $ids = $d['ids'] ?? [];
+            if (!is_array($ids)) out(['error' => 'Lista inválida.'], 400);
+            $stmt = $pdo->prepare('UPDATE tasks SET position = ? WHERE id = ?');
+            $pdo->beginTransaction();
+            foreach (array_values($ids) as $pos => $id) {
+                $stmt->execute([(int) $pos, (int) $id]);
+            }
+            $pdo->commit();
+            out(['ok' => true]);
+
+        // ---------- SUBTAREFAS ----------
+        case 'add_subtask':
+            $d      = body();
+            $taskId = (int) ($d['task_id'] ?? 0);
+            $title  = trim($d['title'] ?? '');
+            if ($taskId <= 0 || $title === '') out(['error' => 'Dados inválidos.'], 400);
+            $maxPos = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM subtasks WHERE task_id = ?');
+            $maxPos->execute([$taskId]);
+            $pos = (int) $maxPos->fetchColumn();
+            $stmt = $pdo->prepare('INSERT INTO subtasks (task_id, title, position) VALUES (?, ?, ?)');
+            $stmt->execute([$taskId, $title, $pos]);
+            out(['id' => (int) $pdo->lastInsertId()], 201);
+
+        case 'toggle_subtask':
+            $d  = body();
+            $id = (int) ($d['id'] ?? 0);
+            $stmt = $pdo->prepare('UPDATE subtasks SET done = 1 - done WHERE id = ?');
+            $stmt->execute([$id]);
+            out(['ok' => true]);
+
+        case 'delete_subtask':
+            $d  = body();
+            $id = (int) ($d['id'] ?? 0);
+            $stmt = $pdo->prepare('DELETE FROM subtasks WHERE id = ?');
+            $stmt->execute([$id]);
+            out(['ok' => true]);
+
+        // ---------- NOTAS ----------
+        case 'add_note':
+            $d      = body();
+            $taskId = (int) ($d['task_id'] ?? 0);
+            $bodyTxt = trim($d['body'] ?? '');
+            if ($taskId <= 0 || $bodyTxt === '') out(['error' => 'Dados inválidos.'], 400);
+            $stmt = $pdo->prepare('INSERT INTO notes (task_id, body) VALUES (?, ?)');
+            $stmt->execute([$taskId, $bodyTxt]);
+            out(['id' => (int) $pdo->lastInsertId()], 201);
+
+        case 'delete_note':
+            $d  = body();
+            $id = (int) ($d['id'] ?? 0);
+            $stmt = $pdo->prepare('DELETE FROM notes WHERE id = ?');
             $stmt->execute([$id]);
             out(['ok' => true]);
 

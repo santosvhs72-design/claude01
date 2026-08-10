@@ -6,11 +6,27 @@ basta enviar os ficheiros por **FTP**.
 
 ## Funcionalidades
 
-- ➕ Adicionar e ✅ concluir tarefas
+- ➕ Adicionar, ✏️ editar (inline) e ✅ concluir tarefas
 - 🗑 Eliminar tarefas
 - 🏷 Organizar tarefas por **categoria** (com cor personalizada)
-- 🔍 Filtrar tarefas por categoria
-- 💾 Dados guardados em **SQLite** (ficheiro único, criado automaticamente)
+- ⏰ **Prazos** com data e **hora de término opcional**
+- ⏳ **Tempo em falta** por tarefa (ex.: "Faltam 2d 3h" / "Atrasada há 5h"), atualizado automaticamente
+- 🔁 **Tarefas recorrentes** (diária/semanal/mensal/anual): ao concluir, a próxima ocorrência é criada automaticamente
+- 📲 **PWA**: instalável no telemóvel/desktop e com o interface a funcionar offline
+- 🔔 **Lembretes**: notificação quando uma tarefa está a chegar à hora (janela de ±30 min, sem repetir)
+- 🔴🟡🟢 **Prioridades** (alta/média/baixa) com marca de cor na tarefa
+- 🗒 **Subtarefas** (checklist) com barra de progresso
+- 📝 **Notas** por tarefa: registo datado de progresso (ex.: "APs inventariados"), sem fechar a tarefa
+- ↕️ **Arrastar para reordenar** (drag & drop)
+- 🔍 **Pesquisa** por texto + **filtros combinados** (categoria + estado: todas/ativas/concluídas)
+- 🗓 **Data de criação** visível em cada tarefa
+- ↕️ **Ordenação** por ordem manual, data de criação, prazo ou nome (A–Z)
+- 🌙 **Modo escuro** com preferência guardada
+- 📱 Design **responsivo** (funciona bem no telemóvel)
+- 💾 Dados guardados em **SQLite** (ficheiro único, criado e migrado automaticamente)
+
+> A base de dados é **migrada automaticamente**: se já tinhas uma versão anterior
+> instalada, as novas colunas são adicionadas sem perder os teus dados.
 
 ## Requisitos do servidor
 
@@ -28,10 +44,21 @@ Não é preciso MySQL, nem instalar dependências, nem `composer`.
    É aqui que o ficheiro `todo.sqlite` é criado na primeira utilização.
 3. Abre o site no navegador. Pronto! 🎉
 
+> **PWA / instalação:** para poderes instalar a app no telemóvel/desktop e usar offline,
+> o site tem de ser servido por **HTTPS** (requisito dos service workers). Quase todos os
+> alojamentos partilhados oferecem HTTPS gratuito. Em `http://localhost` também funciona.
+>
+> **Lembretes:** clica no sino (🔕 → 🔔) e autoriza as notificações. A app avisa-te quando
+> uma tarefa está a chegar à hora. Os lembretes disparam enquanto a app está aberta (ou a
+> correr como PWA); notificações com a app totalmente fechada exigiriam um servidor de
+> *push* (não incluído, para manter tudo em simples FTP).
+
 ## Estrutura dos ficheiros
 
 ```
 index.php          → Página principal (interface)
+manifest.json      → Manifesto da PWA (nome, ícones, cores)
+sw.js              → Service worker (cache offline do shell)
 api.php            → API JSON (adicionar/listar/eliminar tarefas e categorias)
 db.php             → Ligação SQLite + criação automática das tabelas
 assets/style.css   → Estilos
